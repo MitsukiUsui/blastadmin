@@ -28,21 +28,34 @@ class DbController:
             print(e)
             return False
         return True
-    
+
     def exist_fasta(self, _id):
         query = "SELECT EXISTS(SELECT 1 from fasta WHERE fasta_id=?)"
         success = self.execute(query, (_id,))
         if success:
             return list(self.cur.fetchone().values())[0]
         else:
-            return -1
-    
+            print("ERROR: failed to execute exist_fasta()", file=sys.stderr)
+            exit(1)
+
     def insert_fasta(self, _id, origin):
         query = "INSERT INTO fasta VALUES(?, ?, CURRENT_TIMESTAMP)"
         success = self.execute(query, (_id, origin))
-        return success
-    
+        if not(success):
+            print("ERROR: failed to execute insert_fasta()", file=sys.stderr)
+            exit(1)
+
     def delete_fasta(self, _id):
         query = "DELETE FROM fasta WHERE fasta_id=?"
         success = self.execute(query, (_id,))
-        return success
+        if not(success):
+            print("ERROR: failed to execute delete_fasta()", file=sys.stderr)
+            exit(1)
+
+    def insert_db(self, _id, software):
+        query = "INSERT OR REPLACE INTO db VALUES(?, ?, CURRENT_TIMESTAMP)"
+        success = self.execute(query, (_id, software))
+        if not(success):
+            print("ERROR: failed to execute insert_db()", file=sys.stderr)
+            exit(1)
+
