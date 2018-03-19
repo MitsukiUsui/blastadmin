@@ -1,97 +1,93 @@
 #!/usr/bin/env python3
 
-
 import sys
 import os
 import argparse
 import subprocess
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-BIN_DIR = "{}/bin".format(DIR)
-DATA_DIR = "{}/data".format(DIR)
+BIN_DIR = "{}/bin".format(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = "/home/mitsuki/sandbox/blastadmin/data"
 SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(BIN_DIR, name))]
 
-def get_fastaid(ftp):
-    return "f001"
+def get_fasta_filepath(_id):
+    return "{}/fasta/{}.fasta".format(DATA_DIR, _id)
 
-def get_dbid(fp):
-    return "d001"
+def get_db_filepath(software, _id):
+    return "{}/{}/{}".format(DATA_DIR, software, _id)
 
-def get_resultid(query, database):
-    return "r001"
-
-def id2fasta(fastaid):
-    return "{}/{}.fasta".format(DATA_DIR, fastaid)
-
-def id2db(dbid):
-    return "{}/{}".format(DATA_DIR, dbid)
-
-def id2result(resultid):
-    return "{}/{}.m8".format(DATA_DIR, resultid)
-
-def software_createdb(args):
-    fp = args.fasta
-    dbid = get_dbid(fp)
-    out = id2db(dbid)
-    cmd = "{0}/{1}/db.sh {2} {3}".format(BIN_DIR, args.subcommand, fp, out)
+def fetch(args):
+    fastafp = get_fasta_filepath(args.id)
+    cmd = "{0}/wget.sh {1} {2}".format(BIN_DIR, args.ftp, fastafp)
 
     status = subprocess.call(cmd.split())
     if status == 0:
-        print("DONE: create {}".format(out))
+        print("DONE: wget to {}".format(fastafp))
     else:
-        print("ERROR: fail to create database from {}".format(fp), file=sys.stderr)
+        print("ERROR: fail to wget {}".format(args.ftp), file=sys.stderr)
         exit(1)
 
-def software_search(args):
-    query = args.query
-    database = args.database
-    result = id2result(get_resultid(query, database))
-    cmd = "{0}/{1}/search.sh {2} {3} {4}".format(BIN_DIR, args.subcommand, query, database, result)
-    print(cmd)
+def cp(args):
+    fastafp = get_fasta_filepath(args.id)
+    cmd = "cp {} {}".format(args.filepath, fastafp)
+
+    status = subprocess.call(cmd.split())
+    if status == 0:
+        print("DONE: copy to {}".format(fastafp))
+    else:
+        print("ERROR: fail to copy {}".format(args.filepath), file=sys.stderr)
+        exit(1)
+    
+def createdb(args):
+    fastafp = get_fasta_filepath(args.fasta)
+    dbfp = get_db_filepath(args.software, args.fasta)
+    cmd = "{0}/{1}/createdb.sh {2} {3}".format(BIN_DIR, args.software, fastafp, dbfp)
+
+    status = subprocess.call(cmd.split())
+    if status == 0:
+        print("DONE: create {}".format(dbfp))
+    else:
+        print("ERROR: fail to create database from {}".format(fastafp), file=sys.stderr)
+        exit(1)
+
+def search(args):
+    dbfp = get_db_filepath(args.software, args.database)
+    cmd = "{0}/{1}/search.sh {2} {3} {4}".format(BIN_DIR, args.software, args.query, dbfp, args.result)
     
     status = subprocess.call(cmd.split())
     if status == 0:
-        print("DONE: output result to {}".format(result))
+        print("DONE: output result to {}".format(args.result))
     else:
         print("ERROR: search fail", file=sys.stderr)
         exit(1)
     
-def fetch(args):
-    ftp = args.ftp
-    fastaid = get_fastaid(ftp)
-    out = id2fasta(fastaid)
-    cmd = "{}/wget.sh {} {}".format(BIN_DIR, ftp, out)
-    
-    status = subprocess.call(cmd.split())
-    if status == 0:
-        print("DONE: wget to {}".format(out))
-    else:
-        print("ERROR: fail to wget {}".format(ftp), file=sys.stderr)
-        exit(1)
-    
 def main():
     parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(dest="subcommand")
+    subparsers = parser.add_subparsers()
     
     parser_fetch = subparsers.add_parser("fetch", help="fetch new FASTA.")
     parser_fetch.add_argument("ftp", type=str, help="ftp address to fetch FASTA from.")
+    parser_fetch.add_argument("id", type=str, help="unique id.")
     parser_fetch.set_defaults(func=fetch)
     
-    parser_software = subparsers.add_parser("_software", help="run operation for the software specified.", aliases=SOFTWARES)
-    subparsers_software = parser_software.add_subparsers()
+    parser_cp = subparsers.add_parser("cp", help="register new FASTA.")
+    parser_cp.add_argument("filepath", type=str, help="filepath to copy FASTA from.")
+    parser_cp.add_argument("id", type=str, help="unique id.")
+    parser_cp.set_defaults(func=cp)
     
-    parser_software_createdb = subparsers_software.add_parser("createdb", help="create a new database.")
-    parser_software_createdb.add_argument("fasta", help="FASTA filepath to create a new database.")
-    parser_software_createdb.set_defaults(func=software_createdb)
+    parser_createdb = subparsers.add_parser("createdb", help="create new database.")
+    parser_createdb.add_argument("software", type=str, choices=SOFTWARES, help="software to run")
+    parser_createdb.add_argument("fasta", type=str, help="FASTA to create database from (unique id).")
+    parser_createdb.set_defaults(func=createdb)
     
-    parser_software_query = subparsers_software.add_parser("search", help="search a query against a database.")
-    parser_software_query.add_argument("query", help="query filepath.")
-    parser_software_query.add_argument("database", help="database to be searched.")
-    parser_software_query.set_defaults(func=software_search)
+    parser_search = subparsers.add_parser("search", help="search query against database.")
+    parser_search.add_argument("software", type=str, choices=SOFTWARES, help="software to run")
+    parser_search.add_argument("query", help="query filepath.")
+    parser_search.add_argument("database", help="database to be searched (unique id).")
+    parser_search.add_argument("result", help="result filepath.")
+    parser_search.set_defaults(func=search)
     
     args = parser.parse_args()
     args.func(args)
-    
 
 if __name__=="__main__":
     main()
