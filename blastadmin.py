@@ -5,9 +5,14 @@ import os
 import argparse
 import subprocess
 
+from src import helper
+
+DB_FILEPATH = "{}/blastadmin.sq3".format(os.path.dirname(os.path.abspath(__file__)))
 BIN_DIR = "{}/bin".format(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = "/home/mitsuki/sandbox/blastadmin/data"
 SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(BIN_DIR, name))]
+
+dc = helper.DbController(DB_FILEPATH)
 
 def get_fasta_filepath(_id):
     return "{}/fasta/{}.fasta".format(DATA_DIR, _id)
@@ -15,24 +20,56 @@ def get_fasta_filepath(_id):
 def get_db_filepath(software, _id):
     return "{}/{}/{}".format(DATA_DIR, software, _id)
 
+def ask(message):
+    while True:
+        choice = input(message).lower()
+        if choice in ['y', 'ye', 'yes']:
+            return True
+        elif choice in ['n', 'no']:
+            return False
+
+def clean_fastaid(_id):
+    exist = dc.exist_fasta(_id)
+    if exist == -1:  #if query fails
+        print("ERROR: failed to execute exist_fasta()")
+        exit(1)
+    elif exist == 0:  #if not exist
+        pass
+    if exist == 1:  #if exists
+        message = "{} is already used as id. Do you want to overwrite? [y/N]: ".format(_id)
+        if ask(message):
+            dc.delete_fasta(_id)
+        else:
+            exit(0)
+
+def insert_fasta(_id, origin):
+    success = dc.insert_fasta(_id, origin)
+    if success:
+        print("DONE: register {}".format(_id))
+    else:
+        print("ERROR: failed to register to fasta")
+        exit(1)
+
 def fetch(args):
+    clean_fastaid(args.id)
     fastafp = get_fasta_filepath(args.id)
     cmd = "{0}/wget.sh {1} {2}".format(BIN_DIR, args.ftp, fastafp)
 
     status = subprocess.call(cmd.split())
     if status == 0:
-        print("DONE: wget to {}".format(fastafp))
+        insert_fasta(args.id, origin=args.ftp)
     else:
         print("ERROR: fail to wget {}".format(args.ftp), file=sys.stderr)
         exit(1)
 
 def cp(args):
+    clean_fastaid(args.id)
     fastafp = get_fasta_filepath(args.id)
     cmd = "cp {} {}".format(args.filepath, fastafp)
 
     status = subprocess.call(cmd.split())
     if status == 0:
-        print("DONE: copy to {}".format(fastafp))
+        insert_fasta(args.id, origin=args.filepath)
     else:
         print("ERROR: fail to copy {}".format(args.filepath), file=sys.stderr)
         exit(1)
