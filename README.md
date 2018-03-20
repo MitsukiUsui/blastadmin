@@ -1,14 +1,14 @@
 # blastadmin
 
-blastadmin is a command wrapper which enables users to run multiple similarity search software in the same interface.
+blastadmin is a command wrapper which enables users to run multiple similarity search software in a same interface.
 
 ## For Who?
 * For those who are overwhelmed with thousands of similarity search commands which are slightly different each other.  
-    -> blastadmin provides you a **simplified wrapped interface!**
+    -> blastadmin provides you a **simple wrapped interface!**
 * For those who are tired of remembering and specifying long filepath to the database every time you run a search.  
-    -> blastadmin enables you to **specify database by a unique identifier you assign**, such as "nr"!
+    -> blastadmin enables you to specify database by a **unique identifier you assign**, such as "nr"!
 * For those who don't want to pay attention to avoiding a search with the same query-database pair, in order not to waste computer resources.  
-    -> **blastadmin keeps track of the search history** and run a search only when needed!
+    -> blastadmin keeps track of the **search history** and runs a search only when needed!
 
 ## Installation
 ### Requirements
@@ -35,13 +35,13 @@ blastadmin.py search blastn ./demo/query.fna ecoli-genome ./result.tsv
 ```
 
 ### Detail
-First, you need to register FASTA file to blastadmin by `wget/cp` with unique identifier you provide. `wget` will automatically uncompress `.gz` file.
+First, you need to register a FASTA file to blastadmin by `wget/cp` with a unique identifier you provide. `wget` will automatically uncompress `.gz` file.
 ```
 blastadmin.py wget <ftp address> <id>
 blastadmin.py cp <local filepath> <id>
 ```
 
-Second, you create a database using the FASTA you registered. This command will execute `./bin/<software>/createdb.sh` inside. Actually, you don't need to explicitly call this command because `search` will call `createdb` first if the database is yet to be created.
+Second, you create a database with the FASTA you registered. This command will execute `./bin/<software>/createdb.sh` inside. Actually, you don't need to explicitly call this command because `search` will call `createdb` first if the database is yet to be created or outdated.
 ```
 blastadmin.py createdb <software> <id>
 ```
