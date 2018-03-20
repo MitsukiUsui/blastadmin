@@ -7,7 +7,7 @@ blastadmin is a command wrapper which enables users to run multiple similarity s
     -> blastadmin provides you a **simplified wrapped interface!**
 * For those who are tired of remembering and specifying long filepath to the database every time you run a search.  
     -> blastadmin enables you to **specify database by a unique identifier you assign**, such as "nr"!
-* For those who don't want to pay attention to avoiding a search with the same query-database pair, in order not to waste computer resources.   
+* For those who don't want to pay attention to avoiding a search with the same query-database pair, in order not to waste computer resources.  
     -> **blastadmin keeps track of the search history** and run a search only when needed!
 
 ## Installation
