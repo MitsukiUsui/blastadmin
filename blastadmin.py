@@ -4,21 +4,27 @@ import sys
 import os
 import argparse
 import subprocess
+import shutil
+from hashlib import md5
 
 from src import helper
 
 DB_FILEPATH = "{}/blastadmin.sq3".format(os.path.dirname(os.path.abspath(__file__)))
 BIN_DIR = "{}/bin".format(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = "/home/mitsuki/sandbox/blastadmin/data"
+DATA_DIR = os.environ["BLASTADMIN_DATA"]
 SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(BIN_DIR, name))]
 
 dc = helper.DbController(DB_FILEPATH)
 
 def get_fasta_filepath(_id):
-    return "{}/fasta/{}.fasta".format(DATA_DIR, _id)
+    fp = "{}/fasta/{}.fasta".format(DATA_DIR, _id)
+    os.makedirs(os.path.dirname(fp), exist_ok=True)
+    return fp
 
 def get_db_filepath(_id, software):
-    return "{}/{}/{}".format(DATA_DIR, software, _id)
+    fp = "{}/{}/{}".format(DATA_DIR, software, _id)
+    os.makedirs(os.path.dirname(fp), exist_ok=True)
+    return fp
 
 def ask(message):
     while True:
@@ -28,54 +34,87 @@ def ask(message):
         elif choice in ['n', 'no']:
             return False
 
-def clean_fastaid(_id):
-    exist = dc.exist_fasta(_id)
+def clean_row_fasta(_id):
+    exist = dc.exist_row_fasta(_id)
     if exist == 1:  #if exists
         message = "{} is already used as id. Do you want to overwrite? [y/N]: ".format(_id)
         if ask(message):
-            dc.delete_fasta(_id)
+            dc.delete_row_fasta(_id)
         else:
             sys.exit(0)
 
+def calc_hash(filepath):
+    try:
+        with open(filepath, 'rb') as f:
+            checksum = md5(f.read()).hexdigest()
+        return checksum
+    except FileNotFoundError:
+        return None
+
+def calc_hash_database(_id, software):
+    return dc.get_timestamp_db(_id, software)
+
+def calc_hash_param(software):
+    fp = "{}/{}/search.sh".format(BIN_DIR, software)
+    return calc_hash(fp)
+
+def insert_row_history(software, query, _id, result):
+   	dc.insert_row_history(software, query, _id, result,
+                          calc_hash_param(software), calc_hash(query), calc_hash_database(_id, software), calc_hash(result))
+
+def check_history(software, query, _id, result):
+    row_lst = dc.select_row_history(software, query, _id,
+                                    calc_hash_param(software), calc_hash(query), calc_hash_database(_id, software))
+    ret = None
+    for row in row_lst:
+        if row["hash_result"] == calc_hash(row["result"]):
+            ret = row["result"]
+            if ret == result: #prioritize the same filepath
+                break
+    return ret
+
 def wget(args):
-    clean_fastaid(args._id)
+    clean_row_fasta(args._id)
     fastafp = get_fasta_filepath(args._id)
     cmd = "{0}/wget.sh {1} {2}".format(BIN_DIR, args.ftp, fastafp)
 
+    print("START: wget from {} to {}".format(args.ftp, fastafp))
     status = subprocess.call(cmd.split())
     if status == 0:
-        dc.insert_fasta(args._id, origin=args.ftp)
+        dc.insert_row_fasta(args._id, origin=args.ftp)
         print("DONE: register {}".format(args._id))
     else:
         print("ERROR: fail to wget {}".format(args.ftp), file=sys.stderr)
         sys.exit(1)
 
 def cp(args):
-    clean_fastaid(args._id)
+    clean_row_fasta(args._id)
     fastafp = get_fasta_filepath(args._id)
     cmd = "cp {} {}".format(args.filepath, fastafp)
 
+    print("START: cp from {} to {}".format(args.filepath, fastafp))
     status = subprocess.call(cmd.split())
     if status == 0:
-        dc.insert_fasta(args._id, origin=args.filepath)
+        dc.insert_row_fasta(args._id, origin=args.filepath)
         print("DONE: register {}".format(args._id))
     else:
         print("ERROR: fail to copy {}".format(args.filepath), file=sys.stderr)
         sys.exit(1)
 
 def createdb(args):
-    exist = dc.exist_fasta(args._id)
+    exist = dc.exist_row_fasta(args._id)
     if exist == 0:
-        print("ERROR: {} is not registered yet. Please register first by running wget/cp.".format(args._id), file=sys.stderr)
+        print("ERROR: {} is not registered yet. Please register FASTA first by running wget/cp.".format(args._id), file=sys.stderr)
         sys.exit(1)
 
     fastafp = get_fasta_filepath(args._id)
     dbfp = get_db_filepath(args._id, args.software)
     cmd = "{0}/{1}/createdb.sh {2} {3}".format(BIN_DIR, args.software, fastafp, dbfp)
 
+    print("START: create {} database for {}".format(args.software, args._id))
     status = subprocess.call(cmd.split())
     if status == 0:
-        dc.insert_db(args._id, args.software)
+        dc.insert_row_db(args._id, args.software)
         print("DONE: create {}".format(dbfp))
     else:
         print("ERROR: fail to create database from {}".format(fastafp), file=sys.stderr)
@@ -85,15 +124,31 @@ def search(args):
     #update database if necessary
     timestamp_fasta = dc.get_timestamp_fasta(args._id)
     timestamp_db = dc.get_timestamp_db(args._id, args.software)
-    if timestamp_db < timestamp_fasta:
-        print("START: need to update database first.")
+    if timestamp_db == "-1" or timestamp_db < timestamp_fasta: #timestamp_db != "-1" -> timestamp_fasta != "-1"
         createdb(args)
+        print()
 
+    args.query = os.path.abspath(args.query)
+    args.result = os.path.abspath(args.result)
+
+    #check history and reuse result when possible
+    result = check_history(args.software, args.query, args._id, args.result)
+    if result is not None:
+        print("DONE: found already computed result in {}".format(result))
+        if result != args.result:
+            shutil.copy(result, args.result)
+            insert_row_history(args.software, args.query, args._id, args.result)
+            print("DONE: copy to {}".format(args.result))
+        sys.exit(0)
+
+    #need to run search
     dbfp = get_db_filepath(args._id, args.software)
     cmd = "{0}/{1}/search.sh {2} {3} {4}".format(BIN_DIR, args.software, args.query, dbfp, args.result)
 
+    print("START: search {} against {}".format(args.query, args._id))
     status = subprocess.call(cmd.split())
     if status == 0:
+        insert_row_history(args.software, args.query, args._id, args.result)
         print("DONE: output result to {}".format(args.result))
     else:
         print("ERROR: search fail", file=sys.stderr)
