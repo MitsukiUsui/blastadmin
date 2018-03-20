@@ -1,9 +1,8 @@
 #!/bin/bash
 set -ue
 
-fasta=${1}
-db=${2}
+fastaFilepath=${1}
+dbFilepath=${2}
 
 makeblastdb -dbtype nucl \
-            -in ${fasta} -out ${db} \
-#            -logfile /dev/null
+            -in ${fastaFilepath} -out ${dbFilepath} \

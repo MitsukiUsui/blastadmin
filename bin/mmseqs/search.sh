@@ -2,18 +2,19 @@
 
 set -ue
 
-query=${1}
-targetDB=${2}
-result=${3}
+queryFilepath=${1}
+dbFilepath=${2}
+resultFilepath=${3}
 
-mmseqsDirec=/var/tmp/mitsuki/mmseqs/`date +%s`
+mmseqsDirec=/var/tmp/${USER}/mmseqs/`date +%s`
 queryDB=${mmseqsDirec}/queryDB
+targetDB=${dbFilepath}
 resultDB=${mmseqsDirec}/resultDB
 tmpDirec=${mmseqsDirec}/tmp
 
 mkdir -p ${mmseqsDirec}
 mkdir -p ${tmpDirec}
 
-mmseqs createdb ${query} ${queryDB}
+mmseqs createdb ${queryFilepath} ${queryDB}
 mmseqs search ${queryDB} ${targetDB} ${resultDB} ${tmpDirec} --threads 20
-mmseqs convertalis ${queryDB} ${targetDB} ${resultDB} ${result} --threads 20
+mmseqs convertalis ${queryDB} ${targetDB} ${resultDB} ${resultFilepath} --threads 20

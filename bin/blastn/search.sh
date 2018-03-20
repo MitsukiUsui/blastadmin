@@ -2,13 +2,13 @@
 
 set -ue
 
-query=${1}
-database=${2}
-result=${3}
+queryFilepath=${1}
+dbFilepath=${2}
+resultFilepath=${3}
 
-blastn -db ${database}\
-       -query ${query}\
-       -out ${result}\
+blastn -db ${dbFilepath}\
+       -query ${queryFilepath}\
+       -out ${resultFilepath}\
        -word_size 4\
        -evalue 1e-3\
        -outfmt 6

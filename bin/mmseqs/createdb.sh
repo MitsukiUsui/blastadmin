@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ue
 
-fasta=${1}
-db=${2}
+fastaFilepath=${1}
+dbFilepath=${2}
 
-mmseqs createdb ${fasta} ${db}
+mmseqs createdb ${fastaFilepath} ${dbFilepath}
