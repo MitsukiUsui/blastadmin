@@ -159,13 +159,13 @@ def main():
     subparsers = parser.add_subparsers()
 
     parser_wget = subparsers.add_parser("wget", help="register new FASTA by wget.")
-    parser_wget.add_argument("ftp", type=str, help="ftp address to wget FASTA from.")
     parser_wget.add_argument("_id", metavar="id", type=str, help="unique id.")
+    parser_wget.add_argument("ftp", type=str, help="ftp address to wget FASTA from.")
     parser_wget.set_defaults(func=wget)
 
     parser_cp = subparsers.add_parser("cp", help="register new FASTA by cp.")
-    parser_cp.add_argument("filepath", type=str, help="filepath to copy FASTA from.")
     parser_cp.add_argument("_id", metavar="id", type=str, help="unique id.")
+    parser_cp.add_argument("filepath", type=str, help="filepath to copy FASTA from.")
     parser_cp.set_defaults(func=cp)
 
     parser_createdb = subparsers.add_parser("createdb", help="create new database.")

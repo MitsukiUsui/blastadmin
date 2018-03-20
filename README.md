@@ -7,7 +7,7 @@ blastadmin is a command wrapper which enables users to run multiple similarity s
     -> blastadmin provides you a **simple wrapped interface!**
 * For those who are tired of remembering and specifying long filepath to the database every time you run a search.  
     -> blastadmin enables you to specify database by a **unique identifier you assign**, such as "nr"!
-* For those who don't want to pay attention to avoiding a search with the same query-database pair, in order not to waste computer resources.  
+* For those who want to cache search results and save computer resources.  
     -> blastadmin keeps track of the **search history** and runs a search only when needed!
 
 ## Installation
@@ -25,11 +25,13 @@ echo 'export BLASTADMIN_DATA="/path/to/data/directory/you/want"' >> ~/.bash_prof
 ```
 
 ## Usage
-blastadmin.py has 3 types of subcommands, that is `wget/cp`, `createdb`, and `search`. Here is a simple example below.
+blastadmin.py has 3 types of subcommands, that is `wget/cp`, `createdb`, and `search`. You can run similarity search with `search` command whatever software you are using in the backend.
 
 ### Example
+Here is a simple example with blastn search against genome of *E.coli*.
+
 ```
-blastadmin.py wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz ecoli-genome
+blastadmin.py wget evoli-genome ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz
 blastadmin.py createdb blastn ecoli-genome
 blastadmin.py search blastn ./demo/query.fna ecoli-genome ./result.tsv
 ```
@@ -37,8 +39,8 @@ blastadmin.py search blastn ./demo/query.fna ecoli-genome ./result.tsv
 ### Detail
 First, you need to register a FASTA file to blastadmin by `wget/cp` with a unique identifier you provide. `wget` will automatically uncompress `.gz` file.
 ```
-blastadmin.py wget <ftp address> <id>
-blastadmin.py cp <local filepath> <id>
+blastadmin.py wget <id> <ftp address>
+blastadmin.py cp <id> <local filepath>
 ```
 
 Second, you create a database with the FASTA you registered. This command will execute `./bin/<software>/createdb.sh` inside. Actually, you don't need to explicitly call this command because `search` will call `createdb` first if the database is yet to be created or outdated.
