@@ -31,7 +31,7 @@ blastadmin.py has 3 types of subcommands, that is `wget/cp`, `createdb`, and `se
 Here is a simple example with blastn search against genome of *E.coli*.
 
 ```
-blastadmin.py wget evoli-genome ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz
+blastadmin.py wget ecoli-genome ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz
 blastadmin.py createdb blastn ecoli-genome
 blastadmin.py search blastn ./demo/query.fna ecoli-genome ./result.tsv
 ```
