@@ -134,7 +134,7 @@ def search(args):
     #check history and reuse result when possible
     result = check_history(args.software, args.query, args._id, args.result)
     if result is not None:
-        print("DONE: found already computed result in {}".format(result))
+        print("DONE: found chached result in {}".format(result))
         if result != args.result:
             shutil.copy(result, args.result)
             insert_row_history(args.software, args.query, args._id, args.result)
