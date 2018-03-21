@@ -73,6 +73,13 @@ class DbController:
             print("ERROR: failed to execute insert_row_db()", file=sys.stderr)
             sys.exit(1)
 
+    def delete_row_db(self, _id, software):
+        sql = "DELETE FROM db WHERE id=? and software=?"
+        success = self.execute(sql, (_id, software))
+        if not(success):
+            print("ERROR: failed to execute delete_row_db()", file=sys.stderr)
+            sys.exit(1)
+
     def select_column_db(self, _id, software, column):
         sql = "SELECT {} FROM db WHERE id=? and software=?".format(column)
         success = self.execute(sql, (_id, software))
@@ -91,6 +98,13 @@ class DbController:
         success = self.execute(sql, (software, query, database, result, hash_param, hash_query, hash_database, hash_result))
         if not(success):
             print("ERROR: failed to execute insert_row_history()", file=sys.stderr)
+            sys.exit(1)
+
+    def delete_row_history(self, _id):
+        sql = "DELETE FROM history WHERE database=?"
+        success = self.execute(sql, (_id,))
+        if not(success):
+            print("ERROR: failed to execute delete_row_history()", file=sys.stderr)
             sys.exit(1)
 
     def select_rows_history(self, software, query, database,  hash_param, hash_query, hash_database):

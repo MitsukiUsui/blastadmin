@@ -157,6 +157,36 @@ def search(args):
         print("ERROR: search fail", file=sys.stderr)
         sys.exit(1)
 
+def rm(args):
+    # remove FASTA
+    fastafp = dc.select_column_fasta(args._id, column="filepath")
+    if fastafp is not None:  #if exists
+        cmd = "rm {}".format(fastafp)
+        status = subprocess.call(cmd.split())
+        if status == 0:
+            dc.delete_row_fasta(args._id)
+            print("DONE: delete {}".format(fastafp))
+        else:
+            print("ERROR: fail to delete {}".format(fastafp), file=sys.stderr)
+            sys.exit(1)
+
+    # remove databases
+    for software in SOFTWARES:
+        dbfp = dc.select_column_db(args._id, software, column="filepath")
+        if dbfp is not None:  #if exists
+            cmd = "{}/{}/rm.sh {}".format(BIN_DIR, software, dbfp)
+            status = subprocess.call(cmd.split())
+            if status == 0:
+                dc.delete_row_db(args._id, software)
+                print("DONE: delete {}".format(dbfp))
+            else:
+                print("ERROR: fail to delete {}".format(dbfp), file=sys.stderr)
+                sys.exit(1)
+
+    # remove history log
+    dc.delete_row_history(args._id)
+    print("DONE: delete records on {}".format(args._id))
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="subcommand")
@@ -182,6 +212,10 @@ def main():
     parser_search.add_argument("query", help="query filepath.")
     parser_search.add_argument("result", help="result filepath.")
     parser_search.set_defaults(func=search)
+
+    parser_rm = subparsers.add_parser("rm", help="given id, remove all the relavent data.")
+    parser_rm.add_argument("_id", metavar="id", type=str, help="unique id.")
+    parser_rm.set_defaults(func=rm)
 
     args = parser.parse_args()
     args.func(args)
