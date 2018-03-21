@@ -1,15 +1,17 @@
 CREATE TABLE fasta
 (
-    fasta_id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY,
+    filepath TEXT,
     origin TEXT,
     timestamp TEXT
 );
 CREATE TABLE db
 (
-    fasta_id TEXT,
+    id TEXT,
     software TEXT,
+    filepath TEXT,
     timestamp TEXT,
-    PRIMARY KEY (fasta_id, software)
+    PRIMARY KEY (id, software)
 );
 CREATE TABLE history
 (
