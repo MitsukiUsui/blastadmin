@@ -33,7 +33,7 @@ Here is a simple example with blastn search against genome of *E.coli*.
 ```
 blastadmin.py wget ecoli-genome ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz
 blastadmin.py createdb blastn ecoli-genome
-blastadmin.py search blastn ./demo/query.fna ecoli-genome ./result.tsv
+blastadmin.py search blastn ecoli-genome ./demo/query.fna ./result.tsv
 ```
 
 ### Detail
@@ -50,6 +50,6 @@ blastadmin.py createdb <software> <id>
 
 Last, you run similarity search with the database you created. This command will execute `./bin/<software>/search.sh` inside.
 ```
-blastadmin.py search <software> <query> <id> <result>
+blastadmin.py search <software> <id> <query> <result>
 ```
 
