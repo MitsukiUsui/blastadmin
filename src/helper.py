@@ -31,57 +31,59 @@ class DbController:
         return True
 
     def exist_row_fasta(self, _id):
-        sql = "SELECT EXISTS(SELECT 1 from fasta WHERE fasta_id=?)"
+        sql = "SELECT EXISTS(SELECT 1 from fasta WHERE id=?)"
         success = self.execute(sql, (_id,))
         if success:
-            return list(self.cur.fetchone().values())[0]
+            return list(self.cur.fetchone().values())[0] # return 0 or 1
         else:
             print("ERROR: failed to execute exist_row_fasta()", file=sys.stderr)
             sys.exit(1)
 
-    def insert_row_fasta(self, _id, origin):
-        sql = "INSERT INTO fasta VALUES(?, ?, CURRENT_TIMESTAMP)"
-        success = self.execute(sql, (_id, origin))
+    def insert_row_fasta(self, _id, filepath, origin):
+        sql = "INSERT INTO fasta(id, filepath, origin, timestamp) VALUES(?, ?, ?, CURRENT_TIMESTAMP)"
+        success = self.execute(sql, (_id, filepath, origin))
         if not(success):
             print("ERROR: failed to execute insert_row_fasta()", file=sys.stderr)
             sys.exit(1)
 
     def delete_row_fasta(self, _id):
-        sql = "DELETE FROM fasta WHERE fasta_id=?"
+        sql = "DELETE FROM fasta WHERE id=?"
         success = self.execute(sql, (_id,))
         if not(success):
             print("ERROR: failed to execute delete_row_fasta()", file=sys.stderr)
             sys.exit(1)
 
-    def get_timestamp_fasta(self, _id):
-        sql = "SELECT timestamp FROM fasta WHERE fasta_id=?"
+    def select_column_fasta(self, _id, column):
+        sql = "SELECT {} FROM fasta WHERE id=?".format(column)
         success = self.execute(sql, (_id,))
         if success:
             ret = self.cur.fetchone()
             if ret is None:
-                return "-1"
-            return ret["timestamp"]
+                return ret
+            else:
+                return ret[column]
         else:
-            print("ERROR: failed to execute get_timestamp_fasta()", file=sys.stderr)
+            print("ERROR: failed to execute select_column_fasta()", file=sys.stderr)
             sys.exit(1)
 
-    def insert_row_db(self, _id, software):
-        sql = "INSERT OR REPLACE INTO db VALUES(?, ?, CURRENT_TIMESTAMP)"
-        success = self.execute(sql, (_id, software))
+    def insert_row_db(self, _id, software, filepath):
+        sql = "INSERT OR REPLACE INTO db(id, software, filepath, timestamp) VALUES(?, ?, ?, CURRENT_TIMESTAMP)"
+        success = self.execute(sql, (_id, software, filepath))
         if not(success):
             print("ERROR: failed to execute insert_row_db()", file=sys.stderr)
             sys.exit(1)
 
-    def get_timestamp_db(self, _id, software):
-        sql = "SELECT timestamp FROM db WHERE fasta_id=? and software=?"
+    def select_column_db(self, _id, software, column):
+        sql = "SELECT {} FROM db WHERE id=? and software=?".format(column)
         success = self.execute(sql, (_id, software))
         if success:
             ret = self.cur.fetchone()
             if ret is None:
-                return "-1"
-            return ret["timestamp"]
+                return ret
+            else:
+                return ret[column]
         else:
-            print("ERROR: failed to execute get_timestamp_db()", file=sys.stderr)
+            print("ERROR: failed to execute select_column_db()", file=sys.stderr)
             sys.exit(1)
 
     def insert_row_history(self, software, query, database, result, hash_param, hash_query, hash_database, hash_result):
@@ -91,12 +93,12 @@ class DbController:
             print("ERROR: failed to execute insert_row_history()", file=sys.stderr)
             sys.exit(1)
 
-    def select_row_history(self, software, query, database,  hash_param, hash_query, hash_database):
+    def select_rows_history(self, software, query, database,  hash_param, hash_query, hash_database):
         sql = "SELECT result, hash_result FROM history WHERE software=? and query=? and database=? and hash_param=? and hash_query=? and hash_database=?"
         success = self.execute(sql, (software, query, database, hash_param, hash_query, hash_database))
         if success:
             return self.cur.fetchall()
         else:
-            print("ERROR: failed to execute select_row_history()", file=sys.stderr)
+            print("ERROR: failed to execute select_rows_history()", file=sys.stderr)
             sys.exit(1)
 
