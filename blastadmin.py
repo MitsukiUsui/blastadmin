@@ -89,16 +89,20 @@ def wget(args):
 
 def cp(args):
     clean_row_fasta(args._id)
+    args.filepath = os.path.abspath(args.filepath)
     fastafp = get_fasta_filepath(args._id)
-    cmd = "cp {} {}".format(args.filepath, fastafp)
+    if args.subcommand == "cp":
+        cmd = "cp --remove-destination {} {}".format(args.filepath, fastafp)
+    elif args.subcommand == "ln":
+        cmd = "ln -sf {} {}".format(args.filepath, fastafp)
 
-    print("START: cp from {} to {}".format(args.filepath, fastafp))
+    print("START: {0} from {1} to {2}".format(args.subcommand, args.filepath, fastafp))
     status = subprocess.call(cmd.split())
     if status == 0:
         dc.insert_row_fasta(args._id, origin=args.filepath)
         print("DONE: register {}".format(args._id))
     else:
-        print("ERROR: fail to copy {}".format(args.filepath), file=sys.stderr)
+        print("ERROR: fail to {} {}".format(args.subcommand, args.filepath), file=sys.stderr)
         sys.exit(1)
 
 def createdb(args):
@@ -156,27 +160,27 @@ def search(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(dest="subcommand")
 
     parser_wget = subparsers.add_parser("wget", help="register new FASTA by wget.")
     parser_wget.add_argument("_id", metavar="id", type=str, help="unique id.")
     parser_wget.add_argument("ftp", type=str, help="ftp address to wget FASTA from.")
     parser_wget.set_defaults(func=wget)
 
-    parser_cp = subparsers.add_parser("cp", help="register new FASTA by cp.")
+    parser_cp = subparsers.add_parser("cp", help="register new FASTA by cp.", aliases=["ln"])
     parser_cp.add_argument("_id", metavar="id", type=str, help="unique id.")
-    parser_cp.add_argument("filepath", type=str, help="filepath to copy FASTA from.")
+    parser_cp.add_argument("filepath", type=str, help="filepath to cp FASTA from.")
     parser_cp.set_defaults(func=cp)
 
     parser_createdb = subparsers.add_parser("createdb", help="create new database.")
     parser_createdb.add_argument("software", type=str, choices=SOFTWARES, help="software to run")
-    parser_createdb.add_argument("_id", metavar="fasta", type=str, help="FASTA to create database from (unique id).")
+    parser_createdb.add_argument("_id", metavar="id", type=str, help="FASTA to create database from (unique id).")
     parser_createdb.set_defaults(func=createdb)
 
     parser_search = subparsers.add_parser("search", help="search query against database.")
     parser_search.add_argument("software", type=str, choices=SOFTWARES, help="software to run")
+    parser_search.add_argument("_id", metavar="id", help="database to be searched (unique id).")
     parser_search.add_argument("query", help="query filepath.")
-    parser_search.add_argument("_id", metavar="database", help="database to be searched (unique id).")
     parser_search.add_argument("result", help="result filepath.")
     parser_search.set_defaults(func=search)
 
