@@ -5,6 +5,7 @@ import os
 import argparse
 import subprocess
 import shutil
+import functools
 from hashlib import md5
 
 from src import helper
@@ -15,6 +16,7 @@ DATA_DIR = os.environ["BLASTADMIN_DATA"]
 SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(BIN_DIR, name))]
 
 dc = helper.DbController(DB_FILEPATH)
+print = functools.partial(print, flush=True)
 
 def issue_filepath_fasta(_id):
     fp = "{}/fasta/{}.fasta".format(DATA_DIR, _id)
@@ -60,11 +62,11 @@ def calc_hash_param(software):
 
 def insert_row_history(software, query, _id, result):
    	dc.insert_row_history(software, query, _id, result,
-                          calc_hash_param(software), calc_hash(query), calc_hash_database(_id, software), calc_hash(result))
+        calc_hash_param(software), calc_hash(query), calc_hash_database(_id, software), calc_hash(result))
 
 def check_history(software, query, _id, result):
     row_lst = dc.select_rows_history(software, query, _id,
-                                    calc_hash_param(software), calc_hash(query), calc_hash_database(_id, software))
+        calc_hash_param(software), calc_hash(query), calc_hash_database(_id, software))
     ret = None
     for row in row_lst:
         if row["hash_result"] == calc_hash(row["result"]):
