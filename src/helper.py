@@ -30,32 +30,32 @@ class DbController:
             return False
         return True
 
-    def exist_row_fasta(self, _id):
+    def exist_row_fasta(self, id_):
         sql = "SELECT EXISTS(SELECT 1 from fasta WHERE id=?)"
-        success = self.execute(sql, (_id,))
+        success = self.execute(sql, (id_,))
         if success:
             return list(self.cur.fetchone().values())[0] # return 0 or 1
         else:
             print("ERROR: failed to execute exist_row_fasta()", file=sys.stderr)
             sys.exit(1)
 
-    def insert_row_fasta(self, _id, filepath, origin):
+    def insert_row_fasta(self, id_, filepath, origin):
         sql = "INSERT INTO fasta(id, filepath, origin, timestamp) VALUES(?, ?, ?, CURRENT_TIMESTAMP)"
-        success = self.execute(sql, (_id, filepath, origin))
+        success = self.execute(sql, (id_, filepath, origin))
         if not(success):
             print("ERROR: failed to execute insert_row_fasta()", file=sys.stderr)
             sys.exit(1)
 
-    def delete_row_fasta(self, _id):
+    def delete_row_fasta(self, id_):
         sql = "DELETE FROM fasta WHERE id=?"
-        success = self.execute(sql, (_id,))
+        success = self.execute(sql, (id_,))
         if not(success):
             print("ERROR: failed to execute delete_row_fasta()", file=sys.stderr)
             sys.exit(1)
 
-    def select_column_fasta(self, _id, column):
+    def select_column_fasta(self, id_, column):
         sql = "SELECT {} FROM fasta WHERE id=?".format(column)
-        success = self.execute(sql, (_id,))
+        success = self.execute(sql, (id_,))
         if success:
             ret = self.cur.fetchone()
             if ret is None:
@@ -66,23 +66,23 @@ class DbController:
             print("ERROR: failed to execute select_column_fasta()", file=sys.stderr)
             sys.exit(1)
 
-    def insert_row_db(self, _id, software, filepath):
+    def insert_row_db(self, id_, software, filepath):
         sql = "INSERT OR REPLACE INTO db(id, software, filepath, timestamp) VALUES(?, ?, ?, CURRENT_TIMESTAMP)"
-        success = self.execute(sql, (_id, software, filepath))
+        success = self.execute(sql, (id_, software, filepath))
         if not(success):
             print("ERROR: failed to execute insert_row_db()", file=sys.stderr)
             sys.exit(1)
 
-    def delete_row_db(self, _id, software):
+    def delete_row_db(self, id_, software):
         sql = "DELETE FROM db WHERE id=? and software=?"
-        success = self.execute(sql, (_id, software))
+        success = self.execute(sql, (id_, software))
         if not(success):
             print("ERROR: failed to execute delete_row_db()", file=sys.stderr)
             sys.exit(1)
 
-    def select_column_db(self, _id, software, column):
+    def select_column_db(self, id_, software, column):
         sql = "SELECT {} FROM db WHERE id=? and software=?".format(column)
-        success = self.execute(sql, (_id, software))
+        success = self.execute(sql, (id_, software))
         if success:
             ret = self.cur.fetchone()
             if ret is None:
@@ -100,9 +100,9 @@ class DbController:
             print("ERROR: failed to execute insert_row_history()", file=sys.stderr)
             sys.exit(1)
 
-    def delete_row_history(self, _id):
+    def delete_row_history(self, id_):
         sql = "DELETE FROM history WHERE database=?"
-        success = self.execute(sql, (_id,))
+        success = self.execute(sql, (id_,))
         if not(success):
             print("ERROR: failed to execute delete_row_history()", file=sys.stderr)
             sys.exit(1)
