@@ -18,13 +18,13 @@ SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(
 dc = helper.DbController(DB_FILEPATH)
 print = functools.partial(print, flush=True)
 
-def issue_filepath_fasta(_id):
-    fp = "{}/fasta/{}.fasta".format(DATA_DIR, _id)
+def issue_filepath_fasta(id_):
+    fp = "{}/fasta/{}.fasta".format(DATA_DIR, id_)
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     return fp
 
-def issue_filepath_db(_id, software):
-    fp = "{}/{}/{}".format(DATA_DIR, software, _id)
+def issue_filepath_db(id_, software):
+    fp = "{}/{}/{}".format(DATA_DIR, software, id_)
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     return fp
 
@@ -36,12 +36,12 @@ def ask(message):
         elif choice in ['n', 'no']:
             return False
 
-def clean_row_fasta(_id):
-    exist = dc.exist_row_fasta(_id)
+def clean_row_fasta(id_):
+    exist = dc.exist_row_fasta(id_)
     if exist == 1:  #if exists
-        message = "{} is already used as id. Do you want to overwrite? [y/N]: ".format(_id)
+        message = "{} is already used as id. Do you want to overwrite? [y/N]: ".format(id_)
         if ask(message):
-            dc.delete_row_fasta(_id)
+            dc.delete_row_fasta(id_)
         else:
             sys.exit(0)
 
@@ -53,20 +53,20 @@ def calc_hash(filepath):
     except FileNotFoundError:
         return None
 
-def calc_hash_database(_id, software):
-    return dc.select_column_db(_id, software, column="timestamp")
+def calc_hash_database(id_, software):
+    return dc.select_column_db(id_, software, column="timestamp")
 
 def calc_hash_param(software):
     fp = "{}/{}/search.sh".format(BIN_DIR, software)
     return calc_hash(fp)
 
-def insert_row_history(software, query, _id, result):
-   	dc.insert_row_history(software, query, _id, result,
-        calc_hash_param(software), calc_hash(query), calc_hash_database(_id, software), calc_hash(result))
+def insert_row_history(software, query, id_, result):
+   	dc.insert_row_history(software, query, id_, result,
+        calc_hash_param(software), calc_hash(query), calc_hash_database(id_, software), calc_hash(result))
 
-def check_history(software, query, _id, result):
-    row_lst = dc.select_rows_history(software, query, _id,
-        calc_hash_param(software), calc_hash(query), calc_hash_database(_id, software))
+def check_history(software, query, id_, result):
+    row_lst = dc.select_rows_history(software, query, id_,
+        calc_hash_param(software), calc_hash(query), calc_hash_database(id_, software))
     ret = None
     for row in row_lst:
         if row["hash_result"] == calc_hash(row["result"]):
@@ -76,23 +76,23 @@ def check_history(software, query, _id, result):
     return ret
 
 def wget(args):
-    clean_row_fasta(args._id)
-    fastafp = issue_filepath_fasta(args._id)
+    clean_row_fasta(args.id_)
+    fastafp = issue_filepath_fasta(args.id_)
     cmd = "{0}/wget.sh {1} {2}".format(BIN_DIR, args.ftp, fastafp)
 
     print("START: wget from {} to {}".format(args.ftp, fastafp))
     status = subprocess.call(cmd.split())
     if status == 0:
-        dc.insert_row_fasta(args._id, filepath=fastafp, origin=args.ftp)
-        print("DONE: register {}".format(args._id))
+        dc.insert_row_fasta(args.id_, filepath=fastafp, origin=args.ftp)
+        print("DONE: register {}".format(args.id_))
     else:
         print("ERROR: fail to wget {}".format(args.ftp), file=sys.stderr)
         sys.exit(1)
 
 def cp(args):
-    clean_row_fasta(args._id)
+    clean_row_fasta(args.id_)
     args.filepath = os.path.abspath(args.filepath)
-    fastafp = issue_filepath_fasta(args._id)
+    fastafp = issue_filepath_fasta(args.id_)
     if args.subcommand == "cp":
         cmd = "cp --remove-destination {} {}".format(args.filepath, fastafp)
     elif args.subcommand == "ln":
@@ -101,25 +101,25 @@ def cp(args):
     print("START: {0} from {1} to {2}".format(args.subcommand, args.filepath, fastafp))
     status = subprocess.call(cmd.split())
     if status == 0:
-        dc.insert_row_fasta(args._id, filepath=fastafp, origin=args.filepath)
-        print("DONE: register {}".format(args._id))
+        dc.insert_row_fasta(args.id_, filepath=fastafp, origin=args.filepath)
+        print("DONE: register {}".format(args.id_))
     else:
         print("ERROR: fail to {} {}".format(args.subcommand, args.filepath), file=sys.stderr)
         sys.exit(1)
 
 def createdb(args):
-    fastafp = dc.select_column_fasta(args._id, column="filepath")
+    fastafp = dc.select_column_fasta(args.id_, column="filepath")
     if fastafp is None:
-        print("ERROR: {} is not registered yet. Please register FASTA first by running wget/cp.".format(args._id), file=sys.stderr)
+        print("ERROR: {} is not registered yet. Please register FASTA first by running wget/cp.".format(args.id_), file=sys.stderr)
         sys.exit(1)
 
-    dbfp = issue_filepath_db(args._id, args.software)
+    dbfp = issue_filepath_db(args.id_, args.software)
     cmd = "{0}/{1}/createdb.sh {2} {3}".format(BIN_DIR, args.software, fastafp, dbfp)
 
-    print("START: create {} database for {}".format(args.software, args._id))
+    print("START: create {} database for {}".format(args.software, args.id_))
     status = subprocess.call(cmd.split())
     if status == 0:
-        dc.insert_row_db(args._id, args.software, filepath=dbfp)
+        dc.insert_row_db(args.id_, args.software, filepath=dbfp)
         print("DONE: create {}".format(dbfp))
     else:
         print("ERROR: fail to create database from {}".format(fastafp), file=sys.stderr)
@@ -127,8 +127,8 @@ def createdb(args):
 
 def search(args):
     #update database if necessary
-    timestamp_fasta = dc.select_column_fasta(args._id, column="timestamp")
-    timestamp_db = dc.select_column_db(args._id, args.software, column="timestamp")
+    timestamp_fasta = dc.select_column_fasta(args.id_, column="timestamp")
+    timestamp_db = dc.select_column_db(args.id_, args.software, column="timestamp")
     if (timestamp_db is None) or ( (timestamp_fasta is not None) and (timestamp_db < timestamp_fasta) ): #not exist or outdataed
         createdb(args)
         print()
@@ -137,23 +137,23 @@ def search(args):
     args.result = os.path.abspath(args.result)
 
     #check history and reuse result when possible
-    result = check_history(args.software, args.query, args._id, args.result)
+    result = check_history(args.software, args.query, args.id_, args.result)
     if result is not None:
         print("DONE: found chached result in {}".format(result))
         if result != args.result:
             shutil.copy(result, args.result)
-            insert_row_history(args.software, args.query, args._id, args.result)
+            insert_row_history(args.software, args.query, args.id_, args.result)
             print("DONE: copy to {}".format(args.result))
         sys.exit(0)
 
     #need to run search
-    dbfp = dc.select_column_db(args._id, args.software, column="filepath")
+    dbfp = dc.select_column_db(args.id_, args.software, column="filepath")
     cmd = "{0}/{1}/search.sh {2} {3} {4}".format(BIN_DIR, args.software, args.query, dbfp, args.result)
 
-    print("START: search {} against {}".format(args.query, args._id))
+    print("START: search {} against {}".format(args.query, args.id_))
     status = subprocess.call(cmd.split())
     if status == 0:
-        insert_row_history(args.software, args.query, args._id, args.result)
+        insert_row_history(args.software, args.query, args.id_, args.result)
         print("DONE: output result to {}".format(args.result))
     else:
         print("ERROR: search fail", file=sys.stderr)
@@ -161,12 +161,12 @@ def search(args):
 
 def rm(args):
     # remove FASTA
-    fastafp = dc.select_column_fasta(args._id, column="filepath")
+    fastafp = dc.select_column_fasta(args.id_, column="filepath")
     if fastafp is not None:  #if exists
         cmd = "rm {}".format(fastafp)
         status = subprocess.call(cmd.split())
         if status == 0:
-            dc.delete_row_fasta(args._id)
+            dc.delete_row_fasta(args.id_)
             print("DONE: delete {}".format(fastafp))
         else:
             print("ERROR: fail to delete {}".format(fastafp), file=sys.stderr)
@@ -174,49 +174,49 @@ def rm(args):
 
     # remove databases
     for software in SOFTWARES:
-        dbfp = dc.select_column_db(args._id, software, column="filepath")
+        dbfp = dc.select_column_db(args.id_, software, column="filepath")
         if dbfp is not None:  #if exists
             cmd = "{}/{}/rm.sh {}".format(BIN_DIR, software, dbfp)
             status = subprocess.call(cmd.split())
             if status == 0:
-                dc.delete_row_db(args._id, software)
+                dc.delete_row_db(args.id_, software)
                 print("DONE: delete {}".format(dbfp))
             else:
                 print("ERROR: fail to delete {}".format(dbfp), file=sys.stderr)
                 sys.exit(1)
 
     # remove history log
-    dc.delete_row_history(args._id)
-    print("DONE: delete records on {}".format(args._id))
+    dc.delete_row_history(args.id_)
+    print("DONE: delete records on {}".format(args.id_))
 
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="subcommand")
 
     parser_wget = subparsers.add_parser("wget", help="register new FASTA by wget.")
-    parser_wget.add_argument("_id", metavar="id", type=str, help="unique id.")
+    parser_wget.add_argument("id_", metavar="id", type=str, help="unique id.")
     parser_wget.add_argument("ftp", type=str, help="ftp address to wget FASTA from.")
     parser_wget.set_defaults(func=wget)
 
     parser_cp = subparsers.add_parser("cp", help="register new FASTA by cp.", aliases=["ln"])
-    parser_cp.add_argument("_id", metavar="id", type=str, help="unique id.")
+    parser_cp.add_argument("id_", metavar="id", type=str, help="unique id.")
     parser_cp.add_argument("filepath", type=str, help="filepath to cp FASTA from.")
     parser_cp.set_defaults(func=cp)
 
     parser_createdb = subparsers.add_parser("createdb", help="create new database.")
     parser_createdb.add_argument("software", type=str, choices=SOFTWARES, help="software to run")
-    parser_createdb.add_argument("_id", metavar="id", type=str, help="FASTA to create database from (unique id).")
+    parser_createdb.add_argument("id_", metavar="id", type=str, help="FASTA to create database from (unique id).")
     parser_createdb.set_defaults(func=createdb)
 
     parser_search = subparsers.add_parser("search", help="search query against database.")
     parser_search.add_argument("software", type=str, choices=SOFTWARES, help="software to run")
-    parser_search.add_argument("_id", metavar="id", help="database to be searched (unique id).")
+    parser_search.add_argument("id_", metavar="id", help="database to be searched (unique id).")
     parser_search.add_argument("query", help="query filepath.")
     parser_search.add_argument("result", help="result filepath.")
     parser_search.set_defaults(func=search)
 
     parser_rm = subparsers.add_parser("rm", help="given id, remove all the relavent data.")
-    parser_rm.add_argument("_id", metavar="id", type=str, help="unique id.")
+    parser_rm.add_argument("id_", metavar="id", type=str, help="unique id.")
     parser_rm.set_defaults(func=rm)
 
     args = parser.parse_args()

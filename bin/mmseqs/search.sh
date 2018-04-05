@@ -16,5 +16,5 @@ mkdir -p ${mmseqsDirec}
 mkdir -p ${tmpDirec}
 
 mmseqs createdb ${queryFilepath} ${queryDB}
-mmseqs search ${queryDB} ${targetDB} ${resultDB} ${tmpDirec} --threads 20
-mmseqs convertalis ${queryDB} ${targetDB} ${resultDB} ${resultFilepath} --threads 20
+mmseqs search ${queryDB} ${targetDB} ${resultDB} ${tmpDirec} --threads 30 --start-sens 1 --sens-steps 3 -s 7
+mmseqs convertalis ${queryDB} ${targetDB} ${resultDB} ${resultFilepath} --threads 30
