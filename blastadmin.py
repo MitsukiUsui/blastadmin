@@ -9,7 +9,7 @@ import shutil
 import functools
 from hashlib import md5
 
-from src import helper
+from src import DbController
 
 
 DB_FILEPATH = "{}/blastadmin.sq3".format(os.path.dirname(os.path.abspath(__file__)))
@@ -20,7 +20,7 @@ SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S')
-dc = helper.DbController(DB_FILEPATH)
+dc = DbController(DB_FILEPATH)
 
 
 def issue_filepath_fasta(id_):
