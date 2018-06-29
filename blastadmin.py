@@ -12,14 +12,19 @@ from hashlib import md5
 from src import DbController
 
 
-DB_FILEPATH = "{}/blastadmin.sq3".format(os.path.dirname(os.path.abspath(__file__)))
-BIN_DIR = "{}/bin".format(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.environ["BLASTADMIN_DATA"]
-SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(BIN_DIR, name))]
-
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S')
+
+DB_FILEPATH = "{}/blastadmin.sq3".format(os.path.dirname(os.path.abspath(__file__)))
+BIN_DIR = "{}/bin".format(os.path.dirname(os.path.abspath(__file__)))
+SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(BIN_DIR, name))]
+try:
+    DATA_DIR = os.environ["BLASTADMIN_DATA"]
+except KeyError:
+    logging.error("please set environmental variable \'BLASTADMIN_DATA\' first.\nAborting...")
+    sys.exit(1)
+
 dc = DbController(DB_FILEPATH)
 
 
