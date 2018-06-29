@@ -20,8 +20,8 @@ blastadmin is a command wrapper which enables users to run multiple similarity s
 git clone https://github.com/MitsukiUsui/blastadmin.git
 cd blastadmin
 sqlite3 blastadmin.sq3 < ./src/schema.sql
-echo 'export PATH=$(pwd):$PATH' >> ~/.bash_profile
-echo 'export BLASTADMIN_DATA="/path/to/data/directory/you/want"' >> ~/.bash_profile
+echo "export PATH=$PWD":'$PATH' >> ~/.bash_profile
+echo "export BLASTADMIN_DATA=/path/to/data/directory/you/want" >> ~/.bash_profile
 ```
 
 ## Usage
