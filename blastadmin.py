@@ -4,19 +4,29 @@ import sys
 import os
 import argparse
 import subprocess
+import logging
 import shutil
 import functools
 from hashlib import md5
 
-from src import helper
+from src import DbController
+
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    datefmt='%m/%d/%Y %I:%M:%S')
 
 DB_FILEPATH = "{}/blastadmin.sq3".format(os.path.dirname(os.path.abspath(__file__)))
 BIN_DIR = "{}/bin".format(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.environ["BLASTADMIN_DATA"]
 SOFTWARES = [name for name in os.listdir(BIN_DIR) if os.path.isdir(os.path.join(BIN_DIR, name))]
+try:
+    DATA_DIR = os.environ["BLASTADMIN_DATA"]
+except KeyError:
+    logging.error("please set environmental variable \'BLASTADMIN_DATA\' first.\nAborting...")
+    sys.exit(1)
 
-dc = helper.DbController(DB_FILEPATH)
-print = functools.partial(print, flush=True)
+dc = DbController(DB_FILEPATH)
+
 
 def issue_filepath_fasta(id_):
     fp = "{}/fasta/{}.fasta".format(DATA_DIR, id_)
@@ -37,13 +47,19 @@ def ask(message):
             return False
 
 def clean_row_fasta(id_):
+    logging.debug("checking if \'{}\' is new id".format(id_))
     exist = dc.exist_row_fasta(id_)
     if exist == 1:  #if exists
-        message = "{} is already used as id. Do you want to overwrite? [y/N]: ".format(id_)
+        logging.debug("id already exists")
+        message = "\'{}\' is already used as id. Do you want to overwrite? [y/N]: ".format(id_)
         if ask(message):
+            logging.debug("deletion acceptted")
             dc.delete_row_fasta(id_)
         else:
+            logging.debug("deletion not acceptted. aborting...")
             sys.exit(0)
+    else:
+        logging.debug("confirmed to be new id")
 
 def calc_hash(filepath):
     try:
@@ -61,7 +77,7 @@ def calc_hash_param(software):
     return calc_hash(fp)
 
 def insert_row_history(software, query, id_, result):
-   	dc.insert_row_history(software, query, id_, result,
+    dc.insert_row_history(software, query, id_, result,
         calc_hash_param(software), calc_hash(query), calc_hash_database(id_, software), calc_hash(result))
 
 def check_history(software, query, id_, result):
@@ -76,20 +92,25 @@ def check_history(software, query, id_, result):
     return ret
 
 def wget(args):
+    logging.info("wget called with id={}, ftp={}".format(args.id_, args.ftp))
+
     clean_row_fasta(args.id_)
     fastafp = issue_filepath_fasta(args.id_)
     cmd = "{0}/wget.sh {1} {2}".format(BIN_DIR, args.ftp, fastafp)
 
-    print("START: wget from {} to {}".format(args.ftp, fastafp))
+    logging.debug("execute \'{}\'".format(cmd))
     status = subprocess.call(cmd.split())
     if status == 0:
+        logging.debug("cmd succeeded")
         dc.insert_row_fasta(args.id_, filepath=fastafp, origin=args.ftp)
-        print("DONE: register {}".format(args.id_))
+        logging.info("registered \'{}\'".format(args.id_))
     else:
-        print("ERROR: fail to wget {}".format(args.ftp), file=sys.stderr)
+        logging.error("cmd failed\nAborting...")
         sys.exit(1)
 
 def cp(args):
+    logging.info("{} called with id={}, filepath={}".format(args.subcommand, args.id_, args.filepath))
+
     clean_row_fasta(args.id_)
     args.filepath = os.path.abspath(args.filepath)
     fastafp = issue_filepath_fasta(args.id_)
@@ -98,40 +119,45 @@ def cp(args):
     elif args.subcommand == "ln":
         cmd = "ln -sf {} {}".format(args.filepath, fastafp)
 
-    print("START: {0} from {1} to {2}".format(args.subcommand, args.filepath, fastafp))
+    logging.debug("execute \'{}\'".format(cmd))
     status = subprocess.call(cmd.split())
     if status == 0:
+        logging.debug("cmd succeeded")
         dc.insert_row_fasta(args.id_, filepath=fastafp, origin=args.filepath)
-        print("DONE: register {}".format(args.id_))
+        logging.info("register \'{}\'".format(args.id_))
     else:
-        print("ERROR: fail to {} {}".format(args.subcommand, args.filepath), file=sys.stderr)
+        logging.error("cmd failed\nAborting...")
         sys.exit(1)
 
 def createdb(args):
+    logging.info("createdb called with software={}, id={}".format(args.software, args.id_))
+
     fastafp = dc.select_column_fasta(args.id_, column="filepath")
     if fastafp is None:
-        print("ERROR: {} is not registered yet. Please register FASTA first by running wget/cp.".format(args.id_), file=sys.stderr)
+        logging.warn("\'{}\' is not registered yet. Please register FASTA first by running wget/cp.\nAborting...".format(args.id_))
         sys.exit(1)
-
     dbfp = issue_filepath_db(args.id_, args.software)
     cmd = "{0}/{1}/createdb.sh {2} {3}".format(BIN_DIR, args.software, fastafp, dbfp)
 
-    print("START: create {} database for {}".format(args.software, args.id_))
+    logging.debug("execute \'{}\'".format(cmd))
     status = subprocess.call(cmd.split())
     if status == 0:
+        logging.debug("cmd succeeded")
         dc.insert_row_db(args.id_, args.software, filepath=dbfp)
-        print("DONE: create {}".format(dbfp))
+        logging.info("createdb \'{}\'".format(args.id_))
     else:
-        print("ERROR: fail to create database from {}".format(fastafp), file=sys.stderr)
+        logging.error("cmd failed\nAborting...")
         sys.exit(1)
 
 def search(args):
+    logging.info("search called with software={}, id={}, query={}, result={}".format(args.software, args.id_, args.query, args.result))
+
     #update database if necessary
     timestamp_fasta = dc.select_column_fasta(args.id_, column="timestamp")
     timestamp_db = dc.select_column_db(args.id_, args.software, column="timestamp")
     if (timestamp_db is None) or ( (timestamp_fasta is not None) and (timestamp_db < timestamp_fasta) ): #not exist or outdataed
+        logging.debug("call createdb first as timestamp_fasta = {} and timestamp_db = {}".format(timestamp_fasta, timestamp_db))
         createdb(args)
-        print()
 
     args.query = os.path.abspath(args.query)
     args.result = os.path.abspath(args.result)
@@ -139,55 +165,62 @@ def search(args):
     #check history and reuse result when possible
     result = check_history(args.software, args.query, args.id_, args.result)
     if result is not None:
-        print("DONE: found chached result in {}".format(result))
+        logging.info("found chached result in {}".format(result))
         if result != args.result:
+            logging.debug("cp {} to {}".format(result, args.result))
             shutil.copy(result, args.result)
             insert_row_history(args.software, args.query, args.id_, args.result)
-            print("DONE: copy to {}".format(args.result))
         sys.exit(0)
 
     #need to run search
     dbfp = dc.select_column_db(args.id_, args.software, column="filepath")
     cmd = "{0}/{1}/search.sh {2} {3} {4}".format(BIN_DIR, args.software, args.query, dbfp, args.result)
 
-    print("START: search {} against {}".format(args.query, args.id_))
+    logging.debug("execute \'{}\'".format(cmd))
     status = subprocess.call(cmd.split())
     if status == 0:
+        logging.debug("cmd succeeded")
         insert_row_history(args.software, args.query, args.id_, args.result)
-        print("DONE: output result to {}".format(args.result))
+        logging.info("output result to {}".format(args.result))
     else:
-        print("ERROR: search fail", file=sys.stderr)
+        logging.error("cmd failed\nAborting...")
         sys.exit(1)
 
 def rm(args):
+    logging.info("rm called with id={}".format(args.id_))
+
     # remove FASTA
+    logging.debug("check FASTA")
     fastafp = dc.select_column_fasta(args.id_, column="filepath")
     if fastafp is not None:  #if exists
         cmd = "rm {}".format(fastafp)
+        logging.debug("execute \'{}\'".format(cmd))
         status = subprocess.call(cmd.split())
         if status == 0:
             dc.delete_row_fasta(args.id_)
-            print("DONE: delete {}".format(fastafp))
+            logging.debug("removed FASTA")
         else:
-            print("ERROR: fail to delete {}".format(fastafp), file=sys.stderr)
+            logging.error("cmd failed\nAborting...")
             sys.exit(1)
 
     # remove databases
     for software in SOFTWARES:
+        logging.debug("check {}".format(software))
         dbfp = dc.select_column_db(args.id_, software, column="filepath")
         if dbfp is not None:  #if exists
             cmd = "{}/{}/rm.sh {}".format(BIN_DIR, software, dbfp)
             status = subprocess.call(cmd.split())
+            logging.debug("execute \'{}\'".format(cmd))
             if status == 0:
                 dc.delete_row_db(args.id_, software)
-                print("DONE: delete {}".format(dbfp))
+                logging.debug("removed {}".format(software))
             else:
-                print("ERROR: fail to delete {}".format(dbfp), file=sys.stderr)
+                logging.error("cmd failed\nAborting...")
                 sys.exit(1)
 
     # remove history log
     dc.delete_row_history(args.id_)
-    print("DONE: delete records on {}".format(args.id_))
+    logging.info("deleted all files and records about \'{}\'".format(args.id_))
 
 def main():
     parser = argparse.ArgumentParser()

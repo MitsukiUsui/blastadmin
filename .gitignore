@@ -19,5 +19,6 @@ workspace/
 !CMakeLists.txt
 
 # add all the filename I'm interested in.
-#!target.csv
+!query.fna
+!query.faa
 

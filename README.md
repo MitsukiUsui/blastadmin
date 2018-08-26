@@ -6,9 +6,9 @@ blastadmin is a command wrapper which enables users to run multiple similarity s
 * For those who are overwhelmed with thousands of similarity search commands which are slightly different each other.  
     -> blastadmin provides you a **simple wrapped interface!**
 * For those who are tired of remembering and specifying long filepath to the database every time you run a search.  
-    -> blastadmin enables you to specify database by a **unique identifier you assign**, such as "nr"!
+    -> blastadmin enables you to **specify database by a unique identifier** you assign, such as "nr"!
 * For those who want to cache search results and save computer resources.  
-    -> blastadmin keeps track of the **search history** and runs a search only when needed!
+    -> blastadmin **keeps track of the search history** and runs a search only when needed!
 
 ## Installation
 ### Requirements
@@ -20,8 +20,8 @@ blastadmin is a command wrapper which enables users to run multiple similarity s
 git clone https://github.com/MitsukiUsui/blastadmin.git
 cd blastadmin
 sqlite3 blastadmin.sq3 < ./src/schema.sql
-echo 'export PATH=$(pwd):$PATH' >> ~/.bash_profile
-echo 'export BLASTADMIN_DATA="/path/to/data/directory/you/want"' >> ~/.bash_profile
+echo "export PATH=$PWD":'$PATH' >> ~/.bash_profile
+echo "export BLASTADMIN_DATA=/path/to/data/directory/you/want" >> ~/.bash_profile
 ```
 
 ## Usage
